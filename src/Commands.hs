@@ -7,8 +7,7 @@ import System.FilePath (takeDirectory, takeBaseName, (</>))
 import Text.Read (readMaybe)
 import Data.Char
 import State
--- import Tree
-import Tree1
+import Tree
 
 -- utility function
 safeHead :: [a] -> Maybe a

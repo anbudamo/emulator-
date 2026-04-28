@@ -1,7 +1,6 @@
 module Main where
 
 import Terminal
-import Tree1
 
 main :: IO ()
 main = do

@@ -3,16 +3,18 @@ module Tree where
 import System.Directory (doesDirectoryExist, listDirectory)
 import System.FilePath (takeFileName)
 import Data.List (isPrefixOf)
+import Exceptions
 
 -- type FilePath = String (default from Prelude)
-data DirTree a = Node a [DirTree a] 
+data DirTree a = Folder a [DirTree a] | File a 
 
 instance Show a => Show (DirTree a) where
-  show (Node r xs) = "Node " ++ show r ++ " [" ++ unwords (map show xs) ++ "]"
+  show (Folder r xs) = "Folder " ++ show r ++ " [" ++ unwords (map show xs) ++ "]"
+  show (File r) = "File " ++ show r
 
 sampleTree :: DirTree String 
 sampleTree = 
-  Node "/" [Node "Documents" [Node "attachments" [], Node "final.docx" []], Node "Downloads" [Node "tree.png" []], Node "python.exe" []]
+  Folder "/" [Folder "Documents" [Folder "attachments" [], File "final.docx"], Folder "Downloads" [File "tree.png"], File "python.exe"]
 
 isDirectoryEmpty :: FilePath -> IO Bool 
 isDirectoryEmpty path = do 
@@ -31,6 +33,13 @@ listDirectoryAsPaths path = do
   let paths = map (prefix ++) contents
   return paths 
 
+updateRoot :: String -> DirTree String -> DirTree String
+updateRoot item (Folder _ children) = Folder item children
+updateRoot item (File _) = File item
+
+maxHeight :: DirTree a -> Int 
+maxHeight tree = undefined
+
 buildTreeFromPath :: FilePath -> IO (DirTree FilePath)
 buildTreeFromPath path = do
   let filename = takeFileName path
@@ -38,25 +47,28 @@ buildTreeFromPath path = do
   isDirEmpty <- if isDir then isDirectoryEmpty path else return True
   let isLeafNode = not isDir || isDirEmpty 
   case isLeafNode of 
-    True -> return (Node filename [])
+    True -> if isDir then return (Folder filename []) else return (File filename)
     False -> do 
       childPaths <- listDirectoryAsPaths path
       children <- mapM buildTreeFromPath childPaths 
-      return (Node filename children)
-
-determinePrefix :: [DirTree FilePath] -> String 
-determinePrefix children = 
-    case children of 
-        [] -> ""
-        [child] -> "|\n`--" 
-        otherwise -> "|--"
+      return (Folder filename children)
 
 prettyPrint :: DirTree FilePath -> IO ()
-prettyPrint (Node name children) = do 
+prettyPrint (Folder name children) = do 
     putStrLn name 
     printChildren "" children 
     -- print x directories, x files
-
+    let count = countTree (Folder name children)
+    -- format count output based on plurality (is that a word lol)
+    case count of 
+        (1, 1) -> putStrLn "\n1 directory, 1 file"
+        (1, fileCount) -> putStrLn ("\n1 directory, " ++ (show fileCount) ++ " files")
+        (folderCount, 1) -> putStrLn ("\n" ++ (show folderCount) ++ " directories, " ++ " 1 file")
+        (folderCount, fileCount) -> putStrLn ("\n" ++ (show folderCount) ++ " directories, " ++ (show fileCount) ++ " files")
+prettyPrint (File name) = do 
+    putStrLn (name ++ "\t [error opening dir]")
+    putStrLn ""
+    putStrLn "0 directories, 1 file"
 
 printChildren :: String -> [DirTree FilePath] -> IO ()
 printChildren _ [] = return ()
@@ -66,71 +78,54 @@ printChildren prefix (c:cs) = do
     printChildren prefix cs
 
 printNode :: Bool -> String -> DirTree FilePath -> IO ()
-printNode isLast prefix (Node name children) = do 
+printNode isLast prefix (Folder name children) = do 
     let tie = if isLast then "`-- " else "|-- " 
     putStrLn (prefix ++ tie ++ name) 
-
     let extension = if isLast then "   " else "|   "
     let childPrefix = prefix ++ extension
     printChildren childPrefix children
+printNode isLast prefix (File name) = do 
+    let tie = if isLast then "`-- " else "|-- " 
+    putStrLn (prefix ++ tie ++ name) 
 
--- prettyPrint :: DirTree FilePath -> IO ()
--- prettyPrint (Node name children) = do 
---     let prefix = determinePrefix children 
---     putStrLn name 
---     putStrLn "|"
---     putStr "`--"
---     mapM_ (\child -> prettyPrintHelper child prefix) children
---     return ()
---     -- prettyPrintHelper tree 0
---     putStrLn ""
+-- traversal functions
+-- normally they should return [a], but for my countTree function I wanted to 
+-- be able to flatten into [DirTree a] where each element consists of only a root
+-- eg: what inorder whould normally look like (might be useful for a feature in the future)
+-- inorder :: Show a => DirTree a -> [a]
+-- inorder (Folder name (entry:entries)) =
+--     inorder entry ++ [name] ++ concat (map inorder entries)
+-- inorder (Folder name []) =
+--     [name]
+-- inorder (File name) = 
+--     [name]
+preorder :: Show a => DirTree a -> [DirTree a]
+preorder = undefined 
+inorder :: Show a => DirTree a -> [DirTree a]
+inorder (Folder name (entry:entries)) =
+    inorder entry ++ [Folder name []] ++ concat (map inorder entries)
+inorder (Folder name []) =
+    [Folder name []]
+inorder (File name) = 
+    [File name]
+postorder :: Show a => DirTree a -> [DirTree a]
+postorder = undefined 
 
--- prettyPrintHelper :: DirTree FilePath -> String -> IO ()
--- prettyPrintHelper (Node name []) prefix = do 
--- --   let indent = replicate (height*3) ' '
--- --   putStrLn (indent ++ "|")
--- --   putStr (indent ++ "`--")
---   putStr prefix
---   putStrLn (" " ++ name)
---   return ()
--- prettyPrintHelper (Node name [child]) prefix = do 
--- --   let indent = replicate (height*3) ' '
--- --   putStrLn (indent ++ "|")
--- --   putStr (indent ++ "`--")
---   putStr prefix
---   putStrLn (" " ++ name)
---   prettyPrintHelper child "   |\n`--"
---   return ()
--- prettyPrintHelper (Node name children) prefix = do 
--- --   let indent = replicate (height*3) ' '
--- --   putStrLn (indent ++ "|")
--- --   putStr (indent ++ "`--")
---   putStr prefix
---   putStrLn (" " ++ name)
---   mapM_ (\child -> prettyPrintHelper child "|   |--") children 
---   return ()
+-- flatten can use any type of traversal
+flattenTree :: DirTree a -> (DirTree a -> [DirTree a]) -> [DirTree a]
+flattenTree tree order = order tree
 
+countTree :: Show a => DirTree a -> (Int, Int)
+countTree tree = 
+    countFlatTree flatTlist (0,0)
+    where flatTlist = catch flattenTree tree inorder
 
-
--- prettyPrint :: DirTree FilePath -> IO ()
--- prettyPrint tree = do 
---   prettyPrintHelper tree 0
---   putStrLn ""
-
--- prettyPrintHelper :: DirTree FilePath -> Int -> IO ()
--- prettyPrintHelper (Node name []) height = do 
---   let indent = replicate (height*3) ' '
---   putStrLn (" " ++ name)
---   putStrLn (indent ++ " |")
---   putStr (indent ++ " `--")
---   return ()
--- prettyPrintHelper (Node name children) height = do 
---   let indent = replicate (height*3) ' '
---   putStrLn (" " ++ name)
---   putStrLn (indent ++ " |")
---   putStr (indent ++ " `--")
---   mapM_ (\child -> prettyPrintHelper child (height+1)) children 
---   return ()
-
-updateRoot :: String -> DirTree String -> DirTree String
-updateRoot item (Node rootItem children) = Node item children
+-- returns tuple (number of dirs, number of files) given a flat [DirTree a]
+countFlatTree :: [DirTree a] -> (Int, Int) -> (Int, Int)
+countFlatTree (entry:entries) (numDirs, numFiles) = 
+    case entry of 
+        (Folder _ []) -> countFlatTree entries (numDirs+1, numFiles)
+        (File _) -> countFlatTree entries (numDirs, numFiles+1)
+        -- all entries must be flat since constFlatTree expects a flat list
+        otherwise -> error "countFlatTree received a nested folder"
+countFlatTree [] count = count
