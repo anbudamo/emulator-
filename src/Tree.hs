@@ -3,7 +3,6 @@ module Tree where
 import System.Directory (doesDirectoryExist, listDirectory)
 import System.FilePath (takeFileName)
 import Data.List (isPrefixOf)
-import Exceptions
 
 -- type FilePath = String (default from Prelude)
 data DirTree a = Folder a [DirTree a] | File a 
@@ -100,7 +99,12 @@ printNode isLast prefix (File name) = do
 -- inorder (File name) = 
 --     [name]
 preorder :: Show a => DirTree a -> [DirTree a]
-preorder = undefined 
+preorder (Folder name (entry:entries)) =
+    [Folder name []] ++ preorder entry ++ concat (map preorder entries)
+preorder (Folder name []) =
+    [Folder name []]
+preorder (File name) = 
+    [File name]
 inorder :: Show a => DirTree a -> [DirTree a]
 inorder (Folder name (entry:entries)) =
     inorder entry ++ [Folder name []] ++ concat (map inorder entries)
@@ -109,7 +113,12 @@ inorder (Folder name []) =
 inorder (File name) = 
     [File name]
 postorder :: Show a => DirTree a -> [DirTree a]
-postorder = undefined 
+postorder (Folder name (entry:entries)) =
+    postorder entry ++ concat (map postorder entries) ++ [Folder name []]
+postorder (Folder name []) =
+    [Folder name []]
+postorder (File name) = 
+    [File name]
 
 -- flatten can use any type of traversal
 flattenTree :: DirTree a -> (DirTree a -> [DirTree a]) -> [DirTree a]
@@ -118,7 +127,7 @@ flattenTree tree order = order tree
 countTree :: Show a => DirTree a -> (Int, Int)
 countTree tree = 
     countFlatTree flatTlist (0,0)
-    where flatTlist = catch flattenTree tree inorder
+    where flatTlist = flattenTree tree inorder
 
 -- returns tuple (number of dirs, number of files) given a flat [DirTree a]
 countFlatTree :: [DirTree a] -> (Int, Int) -> (Int, Int)
@@ -127,5 +136,5 @@ countFlatTree (entry:entries) (numDirs, numFiles) =
         (Folder _ []) -> countFlatTree entries (numDirs+1, numFiles)
         (File _) -> countFlatTree entries (numDirs, numFiles+1)
         -- all entries must be flat since constFlatTree expects a flat list
-        otherwise -> error "countFlatTree received a nested folder"
+        _ -> error "countFlatTree received a nested folder"
 countFlatTree [] count = count
