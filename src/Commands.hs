@@ -8,6 +8,7 @@ import Text.Read (readMaybe)
 import Data.Char
 import State
 import Tree
+import Parse 
 
 -- utility function
 safeHead :: [a] -> Maybe a
@@ -43,6 +44,9 @@ handleCommand (cmd:args) eState = do
                 else do 
                     putStrLn "history: too many arguments"
                     return eState
+        "search" -> do 
+            search args eState 
+            return eState
         _ -> do 
             inputNotRecognized cmd 
             return eState 
@@ -172,7 +176,7 @@ history eState = do
                     if index >= 0 && index < length recentCommands 
                         then do 
                             let cmd = recentCommands !! index 
-                            -- use editable prompt function from Terminal
+                            -- use editable prompt function
                             editedCmd <- terminalEditablePrompt eState cmd
                             handleCommand (words editedCmd) eState
                         else do 
@@ -185,13 +189,15 @@ historyPrompt mem = do
     mapM_ (\(command, i) -> putStrLn (command ++ " (" ++ (show i) ++ ")")) (zip mem [0 ..])
     putStr "Choose a past command or ENTER: "
     hFlush stdout
-    option <- getLine
-    case option of 
+    chosen <- getLine
+    case chosen of 
         "" -> return Nothing 
-        _ -> return (Just option) 
+        _ -> return (Just chosen) 
 
 
--- terminal functions 
+-- populates the prompt with editable command 
+-- utilized AI to discuss the approach and implementation below since I was having 
+-- trouble finding online sources to tackle the feature
 terminalEditablePrompt :: EmulatorState -> String -> IO Command 
 terminalEditablePrompt eState cmd = do 
     let (WorkingDirectory currPath) = workingDir eState
@@ -202,7 +208,7 @@ terminalEditablePrompt eState cmd = do
     return command 
 
 
--- custom getLine, lets the user edit initial string
+-- custom getLine that lets the user edit an initial command and returns it
 getLineWithCmd :: String -> IO String
 getLineWithCmd initialStr = do
     -- turn off standard terminal behaviors
@@ -223,8 +229,8 @@ getLineWithCmd initialStr = do
 
 typingLoop :: String -> IO String
 typingLoop currentStr = do
-    char <- getChar
-    case char of
+    keystroke <- getChar
+    case keystroke of
         -- enter key
         '\n' -> do
             putStrLn ""
@@ -249,5 +255,17 @@ handleBackspace currentStr =
             putStr "\b \b" 
             hFlush stdout
             -- Remove last char
-            typingLoop (init currentStr) 
+            typingLoop (init currentStr)
+
+search :: [String] -> EmulatorState -> IO ()
+-- search [] _ = putStrLn "search: search argument missing" 
+-- search [term] eState = do 
+--     (WorkingDirectory currPath) = workingDir eState
+--     fullTree <- buildTreeFromPath currPath
+--     searchTree <- filterTree term fullTree
+--     prettyPrint searchTree
+    
+-- search args _ = putStrLn ("search: too many arguments provided: " ++ (unwords args))
+search args _ = putStrLn ("search: not yet implemented: " ++ (unwords args))
+
 

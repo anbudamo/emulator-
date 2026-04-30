@@ -138,3 +138,30 @@ countFlatTree (entry:entries) (numDirs, numFiles) =
         -- all entries must be flat since constFlatTree expects a flat list
         _ -> error "countFlatTree received a nested folder"
 countFlatTree [] count = count
+
+-- working on some helpers for the search command
+-- filterTree :: String -> DirTree String -> DirTree String 
+-- filterTree term (Folder name [])
+-- filterTree term (File name) = 
+--     case isMatch 
+-- filterTree term tree = 
+--     -- base case - current node match
+--     case isMatch term name of  
+--         True -> 
+--             let acceptedChildren = map (\child -> filterTree term child) children
+--             Folder name ()
+--     -- has a child that matches
+
+--     -- optional - has a parent that matches
+--     where 
+--         (Folder name children) = tree
+    
+
+-- matchFilter :: String -> String -> Either ParseError String 
+-- matchFilter term target = parse (containsP term) "" target 
+
+-- isMatch :: String -> String -> Bool
+-- isMatch term target = isRight $ matchFilter term target 
+
+-- isChildrenMatch :: String -> [DirTree a] -> Bool
+-- isChildrenMatch term (x:xs) = 
