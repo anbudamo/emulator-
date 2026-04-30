@@ -26,6 +26,15 @@ The following commands are implemented in the program:
 3. tree 
 4. history
 5. quit 
+6. search (not implemented yet)
+
+I wanted the search command to print a filtered tree displaying matches. I began to work on 
+the logic to determine whether a tree node matched the search term. I started using parsec for that
+and have a working parser that parses a string if it contains a specified substring. After spending
+a bunch of time doing that I found out that I could use isInfixOf from Data.List. Therefore, I 
+didn't have time to implement my filterTree function in Tree.hs which should return the filtered tree.
+I did get to revisit the parsec library and play around with it, which was fun. I will definitely be 
+implementing this feature before my presentation!
 
 Running the Program
 -------
