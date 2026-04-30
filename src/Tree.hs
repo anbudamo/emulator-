@@ -3,9 +3,19 @@ module Tree where
 import System.Directory (doesDirectoryExist, listDirectory)
 import System.FilePath (takeFileName)
 import Data.List (isPrefixOf)
+import Data.Either (isRight)
+import Text.Parsec
+import Text.Parsec.String
+
+import Parse 
+
 
 -- type FilePath = String (default from Prelude)
 data DirTree a = Folder a [DirTree a] | File a 
+
+-- instance Functor [] where 
+--     fmap f [] = [] 
+--     fmap f (x:xs) = f x : fmap f xs
 
 instance Show a => Show (DirTree a) where
   show (Folder r xs) = "Folder " ++ show r ++ " [" ++ unwords (map show xs) ++ "]"
@@ -57,15 +67,15 @@ prettyPrint (Folder name children) = do
     putStrLn name 
     printChildren "" children 
     -- print x directories, x files
-    let count = countTree (Folder name children)
+    let counts = countTree (Folder name children)
     -- format count output based on plurality (is that a word lol)
-    case count of 
+    case counts of 
         (1, 1) -> putStrLn "\n1 directory, 1 file"
         (1, fileCount) -> putStrLn ("\n1 directory, " ++ (show fileCount) ++ " files")
         (folderCount, 1) -> putStrLn ("\n" ++ (show folderCount) ++ " directories, " ++ " 1 file")
         (folderCount, fileCount) -> putStrLn ("\n" ++ (show folderCount) ++ " directories, " ++ (show fileCount) ++ " files")
 prettyPrint (File name) = do 
-    putStrLn (name ++ "\t [error opening dir]")
+    putStrLn name 
     putStrLn ""
     putStrLn "0 directories, 1 file"
 
@@ -137,31 +147,46 @@ countFlatTree (entry:entries) (numDirs, numFiles) =
         (File _) -> countFlatTree entries (numDirs, numFiles+1)
         -- all entries must be flat since constFlatTree expects a flat list
         _ -> error "countFlatTree received a nested folder"
-countFlatTree [] count = count
+countFlatTree [] counts = counts
 
 -- working on some helpers for the search command
--- filterTree :: String -> DirTree String -> DirTree String 
+filterTree :: String -> DirTree FilePath -> DirTree FilePath
+-- map [] (a->b) = []
 -- filterTree term (Folder name [])
--- filterTree term (File name) = 
---     case isMatch 
--- filterTree term tree = 
---     -- base case - current node match
---     case isMatch term name of  
---         True -> 
---             let acceptedChildren = map (\child -> filterTree term child) children
---             Folder name ()
---     -- has a child that matches
-
---     -- optional - has a parent that matches
---     where 
---         (Folder name children) = tree
+filterTree term (File name) 
+    | isMatch term name == True = File name 
+    | otherwise = File ""
+filterTree term (Folder name children) = 
+    -- base case - current node match
+    if acceptRow 
+        then (Folder name (map (\child -> filterTree term child) children))
+        else File ""
+    where 
+        -- accept if current node is match or if has any chilren that match 
+        acceptRow = isTreeMatch term (Folder name children) 
     
+isTreeMatch :: String -> DirTree FilePath -> Bool 
+isTreeMatch term (File name) = isMatch term name 
+isTreeMatch term (Folder name []) = isMatch term name 
+isTreeMatch term (Folder name children) = 
+    isMatch term name || isChildrenMatch term children 
 
--- matchFilter :: String -> String -> Either ParseError String 
--- matchFilter term target = parse (containsP term) "" target 
+isChildrenMatch :: String -> [DirTree FilePath] -> Bool
+isChildrenMatch _ [] = False
+isChildrenMatch term (x:xs) = 
+    isTreeMatch term x || isChildrenMatch term xs
+    -- old version - realized that I didn't need to do pattern matching because I 
+    -- can just pass the tree to isTreeMatch
+    -- updating it solved all the issues where half the searches worked perfectly and
+    -- the other half didn't, though I still don't get why
+    -- figured out why
+    -- case x of 
+    --     (Folder _ children) -> isTreeMatch term x || isChildrenMatch term xs
+    --     (File name) -> isMatch term name -- || isChildrenMatch term xs
 
--- isMatch :: String -> String -> Bool
--- isMatch term target = isRight $ matchFilter term target 
+matchFilter :: String -> String -> Either ParseError String 
+matchFilter term target = parse (containsP term) "" target 
 
--- isChildrenMatch :: String -> [DirTree a] -> Bool
--- isChildrenMatch term (x:xs) = 
+isMatch :: String -> String -> Bool
+isMatch term target = isRight $ matchFilter term target  
+

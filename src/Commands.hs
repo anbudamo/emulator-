@@ -6,9 +6,9 @@ import System.IO (hSetBuffering, hSetEcho, stdin, stdout, hFlush, BufferMode(NoB
 import System.FilePath (takeDirectory, takeBaseName, (</>))
 import Text.Read (readMaybe)
 import Data.Char
+
 import State
 import Tree
-import Parse 
 
 -- utility function
 safeHead :: [a] -> Maybe a
@@ -69,7 +69,7 @@ parseCommand command = words command
 help :: IO () 
 help = do 
     putStrLn "Run basic commands in this custom haskell based terminal emulator:"
-    putStrLn "1. cd [optional: path]\n2. mv [old path] [new path]\n3. tree [optional: path]\n4. history\n5. quit"
+    putStrLn "1. cd [optional: path]\n2. mv [old path] [new path]\n3. tree [optional: path]\n4. history\n5.search [filename]\n6. quit"
     return ()
 
 inputNotRecognized :: String -> IO () 
@@ -89,12 +89,18 @@ tree eState [arg] = do
     let (WorkingDirectory currPath) = workingDir eState
     let targetPath = currPath </> arg
     isEntry <- doesPathExist targetPath
-    if not isEntry then do 
-        putStrLn ("tree: path does not exist: " ++ arg)
-        return ()
-    else do 
-        fileTree <- buildTreeFromPath targetPath
-        prettyPrint fileTree 
+    isDir <- doesDirectoryExist targetPath
+    if not isEntry 
+        then do 
+            putStrLn ("tree: path does not exist: " ++ arg)
+            return ()
+    else 
+        if not isEntry 
+            then do 
+                putStrLn (arg ++ "\t [error opening dir]")
+            else do
+                fileTree <- buildTreeFromPath targetPath
+                prettyPrint fileTree 
 -- 'tree' with too many args
 tree _ _ = do 
     putStrLn ("tree: too many arguments")
@@ -257,15 +263,20 @@ handleBackspace currentStr =
             -- Remove last char
             typingLoop (init currentStr)
 
+-- show or don't show trace -o
+-- don't count empty nodes
+-- caps insensitive
 search :: [String] -> EmulatorState -> IO ()
--- search [] _ = putStrLn "search: search argument missing" 
--- search [term] eState = do 
---     (WorkingDirectory currPath) = workingDir eState
---     fullTree <- buildTreeFromPath currPath
---     searchTree <- filterTree term fullTree
---     prettyPrint searchTree
+search [] _ = putStrLn "search: search argument missing" 
+search [term] eState = do 
+    let (WorkingDirectory currPath) = workingDir eState
+    fullTree <- buildTreeFromPath currPath
+    let searchTree = filterTree term fullTree
+    case searchTree of 
+        File "" -> putStrLn ("search: no entries found for: " ++ term)
+        otherwise -> prettyPrint searchTree
     
--- search args _ = putStrLn ("search: too many arguments provided: " ++ (unwords args))
-search args _ = putStrLn ("search: not yet implemented: " ++ (unwords args))
+search args _ = putStrLn ("search: too many arguments provided: " ++ (unwords args))
+-- search args _ = putStrLn ("search: not yet implemented: " ++ (unwords args))
 
 

@@ -25,16 +25,15 @@ The following commands are implemented in the program:
         but 'mv data.txt src/data.txt' will work!)
 3. tree 
 4. history
-5. quit 
-6. search (not implemented yet)
+5. search (newly added)
+6. quit 
 
-I wanted the search command to print a filtered tree displaying matches. I began to work on 
-the logic to determine whether a tree node matched the search term. I started using parsec for that
-and have a working parser that parses a string if it contains a specified substring. After spending
-a bunch of time doing that I found out that I could use isInfixOf from Data.List. Therefore, I 
-didn't have time to implement my filterTree function in Tree.hs which should return the filtered tree.
-I did get to revisit the parsec library and play around with it, which was fun. I will definitely be 
-implementing this feature before my presentation!
+Implemented a `search [filename]` command that shows the location of the file within a tree
+structure. 
+Current state: 
+- shows the full trace of the tree 
+- displays the total number of files and directories (rather than the filtered count)
+- works great otherwise!
 
 Running the Program
 -------
@@ -42,3 +41,7 @@ Running the Program
 In the root directory of the project, run the following:
     cabal build
     cabal run
+
+demo
+explanation- what and how
+lessons learned
