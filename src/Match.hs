@@ -1,4 +1,4 @@
-module Parse where 
+module Match where 
 
 import Text.Parsec
 import Text.Parsec.String
@@ -11,3 +11,9 @@ containsP term =
     try (string term) <|> do 
         _ <- anyChar
         containsP term
+
+matchFilter :: String -> String -> Either ParseError String 
+matchFilter term target = parse (containsP term) "" target 
+
+isMatch :: String -> String -> Bool
+isMatch term target = isRight $ matchFilter term target  

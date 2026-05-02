@@ -7,7 +7,7 @@ import Data.Either (isRight)
 import Text.Parsec
 import Text.Parsec.String
 
-import Parse 
+import Match
 
 
 -- type FilePath = String (default from Prelude)
@@ -183,10 +183,4 @@ isChildrenMatch term (x:xs) =
     -- case x of 
     --     (Folder _ children) -> isTreeMatch term x || isChildrenMatch term xs
     --     (File name) -> isMatch term name -- || isChildrenMatch term xs
-
-matchFilter :: String -> String -> Either ParseError String 
-matchFilter term target = parse (containsP term) "" target 
-
-isMatch :: String -> String -> Bool
-isMatch term target = isRight $ matchFilter term target  
 

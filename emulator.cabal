@@ -63,7 +63,7 @@ library
                       Commands,
                       State,
                       Tree,
-                      Parse
+                      Match
 
     -- Modules included in this library but not exported.
     -- other-modules:

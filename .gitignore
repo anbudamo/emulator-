@@ -1,4 +1,6 @@
 dist
 dist-*
+*.png
+.DS_Store 
 
 ./cabal.config
