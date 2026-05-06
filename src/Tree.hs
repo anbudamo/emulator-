@@ -3,7 +3,6 @@ module Tree where
 import System.Directory (doesDirectoryExist, listDirectory)
 import System.FilePath (takeFileName)
 import Data.List (isPrefixOf)
-import Data.Either (isRight)
 import Text.Parsec
 import Text.Parsec.String
 

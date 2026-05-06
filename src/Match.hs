@@ -1,5 +1,6 @@
 module Match where 
 
+import Data.Either (isRight)
 import Text.Parsec
 import Text.Parsec.String
 
